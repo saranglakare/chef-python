@@ -22,22 +22,30 @@ major_version = node['platform_version'].split('.').first.to_i
 
 # COOK-1016 Handle RHEL/CentOS namings of python packages, by installing EPEL
 # repo & package
-if platform_family?('rhel') && major_version < 6
+if node['platform_family'] == 'rhel' && node['platform_version'].to_i < 6
   include_recipe 'yum::epel'
   python_pkgs = ["python26", "python26-devel"]
   node.set['python']['binary'] = "/usr/bin/python26"
 else
-  python_pkgs = value_for_platform_family(
-                  "debian" => ["python","python-dev"],
-                  "rhel" => ["python","python-devel"],
-                  "freebsd" => ["python"],
-                  "smartos" => ["python27"],
-                  "default" => ["python","python-dev"]
+  python_pkgs = value_for_platform(
+                  ["debian"] =>   {"default" => ["python","python-dev"]},
+                  ["rhel"] =>     {"default" => ["python","python-devel"]},
+                  ["freebsd"] =>  {"default" => ["python"]},
+                  ["smartos"] =>  {"default" => ["python27"]},
+                  "default" =>  {"default" => ["python","python-dev"]}
                 )
 end
 
 python_pkgs.each do |pkg|
-  package pkg do
-    action :install
+  unless pkg.is_a?(String)
+    pkg.last.each do |p|
+      package p do
+        action :install
+      end
+    end
+  else
+    package pkg do
+      action :install
+    end
   end
 end
